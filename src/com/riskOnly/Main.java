@@ -20,7 +20,7 @@ public class Main {
 
 
     public static void main(String[] args) {
-        matrixGenerator = new MatrixGenerator(50, 20);
+        matrixGenerator = new MatrixGenerator(7, 3);
         int attacker = matrixGenerator.getAttacker();
         int defender = matrixGenerator.getDefender();
 
