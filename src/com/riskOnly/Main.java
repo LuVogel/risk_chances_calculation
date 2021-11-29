@@ -20,31 +20,14 @@ public class Main {
 
 
     public static void main(String[] args) {
-        int attacker = 7;
-        int defender = 3;
-        matrixGenerator = new MatrixGenerator(7, 3);
-        System.out.println("generated class");
-        double[][] qMatrix = matrixGenerator.getMatrixQ(attacker, defender);
-        System.out.println("generated q");
+        matrixGenerator = new MatrixGenerator(50, 20);
+        int attacker = matrixGenerator.getAttacker();
+        int defender = matrixGenerator.getDefender();
 
-        // rMatrix transposed, since it is filled in other direction
-        double[][] rMatrix = transposeMatrix(matrixGenerator.getMatrixR(attacker,defender));
-        System.out.println("generated r");
-        // eMatrix transposed
-        double[][] eMatrix = transposeMatrix(matrixGenerator.getMatrixE(attacker,defender));
-        System.out.println("generated e");
-        double[][] fMatrix = matrixGenerator.getMatrixF(attacker,defender,rMatrix,qMatrix);
-        System.out.println("generated f");
-        double[] pkDef = matrixGenerator.getProbabilityDefenderWin(fMatrix, defender);
-        System.out.println("generated pkdef");
-        double[] pzAtt = matrixGenerator.getProbabilityAttackerWin(fMatrix, attacker, defender);
-        System.out.println("generated pkatt");
-
-        double[][] erMatrix = matrixGenerator.getMatrixER(fMatrix, eMatrix);
-        System.out.println("generated er");
-        String[][] generatedERMatrixWithStates = matrixGenerator.generateMatrixForERStates(erMatrix, attacker, defender);
-        System.out.println("generated erwithstates");
-
+        double[][] erMatrix = matrixGenerator.getCalculatedERMatrix();
+        double[] pzAtt = matrixGenerator.getCalculatedPzAtt();
+        double[] pkDef = matrixGenerator.getCalculatedPkDef();
+        String[][] generatedERMatrixWithStates = matrixGenerator.getCalculatedERWithStates();
 
 
 
@@ -70,7 +53,6 @@ public class Main {
 
         boolean waitingOnInput = true;
         int currentIPosition = 0;
-        int currentJPosition = 0;
 
         Scanner userInput = new Scanner(System.in);
         while (waitingOnInput) {
@@ -93,7 +75,7 @@ public class Main {
                                     " attacker losses and defender losses as state = " + String.valueOf(attacker-attackerLosses) + String.valueOf(defender-defenderLosses));
                             if (generatedERMatrixWithStates[i][j].equals(String.valueOf(attacker-attackerLosses)+String.valueOf(defender-defenderLosses))) {
                                 currentIPosition = i;
-                                currentJPosition = j;
+
                             }
                         }
                     }
@@ -109,7 +91,7 @@ public class Main {
                         "\nWinning probability that defender wins: " + pkDef[currentIPosition]);
             }
         }
-        String[][] expectedLosses = matrixGenerator.generateMatrixForERStates(erMatrix, attacker, defender);
+
 
 
         //testing length of each P vector

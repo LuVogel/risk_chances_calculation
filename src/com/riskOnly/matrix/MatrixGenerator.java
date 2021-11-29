@@ -21,8 +21,63 @@ public class MatrixGenerator {
     static double a1d1_to_a0d1 = 0.5833;
     static double a2d1_to_a2d0 = 0.5787;
 
-     public MatrixGenerator(int attacker, int defender) {
+    int attacker, defender;
+    double[][] erMatrix;
+    String[][] generatedERWithStates;
+    double[] pzAtt;
+    double[] pkDef;
 
+     public MatrixGenerator(int attacker, int defender) {
+         this.attacker = attacker;
+         this.defender = defender;
+         generateAllMatrices();
+     }
+
+     private void generateAllMatrices() {
+         long startTime = System.currentTimeMillis();
+         double[][] qMatrix = getMatrixQ();
+         long afterQ = System.currentTimeMillis();
+         System.out.println("generated q, elapsed Time: " + (afterQ - startTime) + " millis seconds");
+         double[][] rMatrix = transposeMatrix(getMatrixR());
+         long afterR = System.currentTimeMillis();
+         System.out.println("generated r, elapsed Time: " + (afterR - afterQ) + " millis");
+         double[][] eMatrix = transposeMatrix(getMatrixE());
+         long afterE = System.currentTimeMillis();
+         System.out.println("generated e, elapsed Time: " + (afterE - afterR) + " millis");
+         double[][] fMatrix = getMatrixF(rMatrix, qMatrix);
+         long afterF = System.currentTimeMillis();
+         System.out.println("generated f, elapsed Time: " + (afterF - afterE) + " millis");
+         pzAtt = getProbabilityAttackerWin(fMatrix);
+         long afterPAtt = System.currentTimeMillis();
+         System.out.println("generated pkAtt, elapsed Time: " + (afterPAtt - afterF) + " millis");
+         pkDef = getProbabilityDefenderWin(fMatrix);
+         long afterPDef = System.currentTimeMillis();
+         System.out.println("generated pzDef, elapsed Time: "+ (afterPDef - afterPAtt) + " millis");
+         erMatrix = getMatrixER(fMatrix, eMatrix);
+         long afterER = System.currentTimeMillis();
+         System.out.println("generated er, elapsed Time: " + (afterER - afterPDef) + " millis");
+         generatedERWithStates = generateMatrixForERStates(erMatrix);
+         long afterGeneratedStates = System.currentTimeMillis();
+         System.out.println("generated erwithstates, elapsed Time: " + (afterGeneratedStates - afterER) + " millis");
+     }
+
+     public double[][] getCalculatedERMatrix() {
+         return erMatrix;
+     }
+     public double[] getCalculatedPzAtt(){
+         return pzAtt;
+     }
+     public double[] getCalculatedPkDef() {
+         return pkDef;
+     }
+     public String[][] getCalculatedERWithStates() {
+         return generatedERWithStates;
+     }
+     public int getAttacker() {
+         return attacker;
+     }
+     public int getDefender() {
+         return defender;
      }
 
 
@@ -32,14 +87,12 @@ public class MatrixGenerator {
      *
      */
     /**
-     * @param attacker current # attacker on field
-     * @param defender current # defender on field
      * @return [attacker*defender][attacker*defender]: probabilities for transition only between transient states
      */
-    public double[][] getMatrixQ(int attacker, int defender) {
+    public double[][] getMatrixQ() {
         double [][] qMatrix = fillWithZero(attacker*defender, attacker*defender);
-        String[][] initialMatrix = getInitialQ(attacker, defender);
-        String[][] currentTransitionMatrix = getTransitionQ(attacker, defender);
+        String[][] initialMatrix = getInitialQ();
+        String[][] currentTransitionMatrix = getTransitionQ();
 
         int initialAttacker = 0;
         int initialDefender = 0;
@@ -108,11 +161,9 @@ public class MatrixGenerator {
 
     /**
      *
-     * @param attacker
-     * @param defender
      * @return all possible transition states for current attack/defender count
      */
-    private static String[][] getTransitionQ(int attacker, int defender) {
+    private String[][] getTransitionQ() {
         String[][] transitionM = new String[attacker*defender][defender*attacker];
         int secCounter = 0;
         int firstCounter = 0;
@@ -140,11 +191,10 @@ public class MatrixGenerator {
 
     /**
      *
-     * @param attacker
-     * @param defender
+
      * @return return all possible initial states up to (A,D)
      */
-    private static String[][] getInitialQ(int attacker, int defender) {
+    private String[][] getInitialQ() {
         String[][] initialM = new String[attacker*defender][defender*attacker];
         int secCounter = 0;
         int firstCounter = 0;
@@ -169,14 +219,12 @@ public class MatrixGenerator {
      */
     /**
      *
-     * @param attacker
-     * @param defender
      * @return [attacker+defender][attacker*defender]: one-step probabilities from a transient to an absorbing state
      */
-    public double[][] getMatrixR(int attacker, int defender) {
+    public double[][] getMatrixR() {
         double[][] rMatrix = fillWithZero(attacker+defender, attacker*defender);
-        String[][] transitionM = getTransitionR(attacker, defender);
-        String[][] initialM = getInitialR(attacker, defender);
+        String[][] transitionM = getTransitionR();
+        String[][] initialM = getInitialR();
         int currentInitialAttacker = 0;
         int currentInitialDefender = 0;
         int currentTransitionAttacker = 0;
@@ -248,11 +296,9 @@ public class MatrixGenerator {
 
     /**
      *
-     * @param attacker
-     * @param defender
      * @return all initial states relevant for R
      */
-    private static String[][] getInitialR(int attacker, int defender) {
+    private String[][] getInitialR() {
         String[][] initialMatrix = new String[attacker+defender][attacker*defender];
         int secCounter = 0;
         int firstCounter = 0;
@@ -275,11 +321,9 @@ public class MatrixGenerator {
 
     /**
      *
-     * @param attacker
-     * @param defender
      * @return all transient states relevant for R
      */
-    private static String[][] getTransitionR(int attacker, int defender) {
+    private String[][] getTransitionR() {
         String[][] transitionMatrix = new String[attacker+defender][attacker*defender];
         int secCounter = 1;
         int firstCounter = 0;
@@ -314,7 +358,7 @@ public class MatrixGenerator {
         return multiplyMatrix(fMatrix, eMatrix);
     }
 
-    public String[][] generateMatrixForERStates(double[][] erMatrix, int attacker, int defender) {
+    public String[][] generateMatrixForERStates(double[][] erMatrix) {
         String[][] generatedStateMatrix = new String[erMatrix.length][1];
         int firstDigit = 1;
         int secondDigit = 1;
@@ -341,10 +385,9 @@ public class MatrixGenerator {
     /**
      *
      * @param erMatrix [attacker*defender][2] expected remaining armies
-     * @param defender
      * @return probabilities that defender wins for start states (11,...,1D,21,...,2D,...,A1,...,AD)
      */
-    public double[] getProbabilityDefenderWin(double[][] erMatrix, int defender) {
+    public double[] getProbabilityDefenderWin(double[][] erMatrix) {
         double[] pKDef = new double[erMatrix.length];
         for (int i = 0; i < defender; i++) {
             for (int j = 0; j < erMatrix.length; j++) {
@@ -357,11 +400,9 @@ public class MatrixGenerator {
     /**
      *
      * @param erMatrix [attacker*defender][2] expected remaining armies
-     * @param attacker
-     * @param defender
      * @return probabilities that attacker wins for start states (11,...,1D,21,...,2D,...,A1,...,AD)
      */
-    public double[] getProbabilityAttackerWin(double[][] erMatrix, int attacker, int defender) {
+    public double[] getProbabilityAttackerWin(double[][] erMatrix) {
         double[] pzAtt = new double[erMatrix.length];
         for (int i = defender; i < attacker+defender; i++) {
             for (int j = 0; j < erMatrix.length; j++) {
@@ -375,14 +416,12 @@ public class MatrixGenerator {
      */
     /**
      *
-     * @param attacker
-     * @param defender
      * @param rMatrix
      * @param qMatrix
      * @return double[attacker*defender][attacker+defender], probabilities for starting in a transient state,
      *      *  landing in an absorbing state
      */
-    public double[][] getMatrixF(int attacker, int defender, double[][] rMatrix, double[][] qMatrix) {
+    public double[][] getMatrixF(double[][] rMatrix, double[][] qMatrix) {
         double[][] fMatrix = fillWithZero(attacker*defender, attacker+defender);
         for (int n = 1; n < attacker+defender; n++) {
             double[][] expMatrix = multiplyMatrixNTimes(qMatrix, n-1);
@@ -400,12 +439,9 @@ public class MatrixGenerator {
      * E - Matrix calculations
      */
     /**
-     *
-     * @param attacker
-     * @param defender
      * @return double[attacker+defender][2], all transient state ([1...0D...0]; [0...1...A])
      */
-    public double[][] getMatrixE(int attacker, int defender) {
+    public double[][] getMatrixE() {
         double[][] eMatrix = new double[2][attacker+defender];
         int countFirstRow = 1;
         int countSecRow = 0;
