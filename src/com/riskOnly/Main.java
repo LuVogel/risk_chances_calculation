@@ -20,6 +20,19 @@ public class Main {
 
 
     public static void main(String[] args) {
+        /**
+        SparseMatrix sparseMatrix = new SparseMatrix(4, 4, 4*4);
+        sparseMatrix.insertSparse(1, 2, 10);
+        sparseMatrix.insertSparse(1, 4, 12);
+        sparseMatrix.insertSparse(3, 3, 5);
+        sparseMatrix.insertSparse(4, 1, 15);
+        sparseMatrix.insertSparse(4, 2, 12);
+
+        SparseMatrix b = sparseMatrix.multiplySparse(sparseMatrix);
+        sparseMatrix.printSparse("1.");
+        b.printSparse("transposed");
+         **/
+
         matrixGenerator = new MatrixGenerator(7, 3);
         int attacker = matrixGenerator.getAttacker();
         int defender = matrixGenerator.getDefender();
