@@ -1,5 +1,9 @@
 package com.riskOnly.matrix;
 
+import Jama.LUDecomposition;
+import Jama.Matrix;
+import Jama.util.*;
+
 /**
  * matrix operations like print, fillWithZero, potential, multiply,etc
  *
@@ -96,6 +100,93 @@ public class MatrixOperations {
             }
         }
         return transposedMatrix;
+    }
+
+    // finding inverse of a matrix with rule : inverse(A) = adj(A) / det(A)
+
+    private static double[][] getCofactor(double[][] matrix, int row, int column, int dimension) {
+        int n = 0;
+        int m = 0;
+        double[][] result = new double[dimension][dimension];
+
+        for (int i = 0; i < dimension; i++) {
+            for (int j = 0; j < dimension; j++) {
+                if (i != row && j != column) {
+                    result[n][m++] = matrix[i][j];
+                    if (m == dimension-1) {
+                        m = 0;
+                        n++;
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    private static double getDeterminant(double[][] matrix, int dimension) {
+        Matrix matrix1 = new Matrix(matrix);
+        LUDecomposition luDecomposition = new LUDecomposition(matrix1);
+        double res = 0;
+        if (dimension == 1) {
+            return matrix[0][0];
+        }
+        double[][] temp;
+        double counter = 1;
+        for (int i = 0; i < dimension; i++) {
+            temp = getCofactor(matrix, 0, i, dimension);
+            res += counter * matrix[0][i] * getDeterminant(temp, dimension-1);
+            counter = -counter;
+        }
+        return res;
+    }
+
+    private static double getDeterminant_test(double[][] matrix, int dimension) {
+        double res = 0;
+        if (dimension == 1) {
+            return matrix[0][0];
+        }
+        double[][] temp;
+        double counter = 1;
+        for (int i = 0; i < dimension; i++) {
+            temp = getCofactor(matrix, 0, i, dimension);
+            res += counter * matrix[0][i] * getDeterminant(temp, dimension-1);
+            counter = -counter;
+        }
+        return res;
+    }
+
+    private static double[][] getAdjoint(double[][] matrix, int dimension) {
+        double[][] result = new double[dimension][dimension];
+        if (dimension == 1) {
+            result[0][0] = 1;
+            return result;
+        }
+        int counter = 1;
+        double[][] coFactor = new double[dimension][dimension];
+        for (int i = 0; i < dimension; i++) {
+            for (int j = 0; j < dimension; j++) {
+                coFactor = getCofactor(matrix, i, j, dimension);
+                counter = ((i+j) % 2 == 0)? 1: -1;
+                result[j][i] = counter * getDeterminant(matrix, dimension-1);
+            }
+        }
+        return result;
+    }
+
+    public static double[][] getInverse(double[][] matrix, int dimension) {
+        double[][] result = new double[dimension][dimension];
+        double determinant = getDeterminant(matrix, dimension);
+        if (determinant == 0) {
+            System.out.println("Inverse of Matrix not possible");
+            return null;
+        }
+        double[][] adjoint = getAdjoint(matrix, dimension);
+        for (int i = 0; i < dimension; i++) {
+            for (int j = 0; j < dimension; j++) {
+                result[i][j] = (adjoint[i][j] / determinant);
+            }
+        }
+        return result;
     }
 
 

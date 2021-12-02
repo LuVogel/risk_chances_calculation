@@ -1,5 +1,10 @@
 package com.riskOnly.matrix;
 
+import Jama.Matrix;
+import Jama.util.*;
+
+import java.util.Arrays;
+
 import static com.riskOnly.matrix.MatrixOperations.*;
 
 /**
@@ -35,27 +40,37 @@ public class MatrixGenerator {
 
      private void generateAllMatrices() {
          long startTime = System.currentTimeMillis();
-         double[][] qMatrix = getMatrixQ();
+         Matrix qMatrix = getMatrixQ();
          long afterQ = System.currentTimeMillis();
          System.out.println("generated q, elapsed Time: " + (afterQ - startTime) + " millis seconds");
-         double[][] rMatrix = transposeMatrix(getMatrixR());
+
+
+         Matrix rMatrix = getMatrixR();
          long afterR = System.currentTimeMillis();
          System.out.println("generated r, elapsed Time: " + (afterR - afterQ) + " millis");
-         double[][] eMatrix = transposeMatrix(getMatrixE());
+
+
+         Matrix eMatrix = getMatrixE();
          long afterE = System.currentTimeMillis();
          System.out.println("generated e, elapsed Time: " + (afterE - afterR) + " millis");
-         double[][] fMatrix = getMatrixF(rMatrix, qMatrix);
+
+
+         Matrix fMatrix = getMatrixF_test(rMatrix, qMatrix);
          long afterF = System.currentTimeMillis();
          System.out.println("generated f, elapsed Time: " + (afterF - afterE) + " millis");
-         pzAtt = getProbabilityAttackerWin(fMatrix);
+
+         pzAtt = getProbabilityAttackerWin(fMatrix.getArrayCopy());
          long afterPAtt = System.currentTimeMillis();
          System.out.println("generated pkAtt, elapsed Time: " + (afterPAtt - afterF) + " millis");
-         pkDef = getProbabilityDefenderWin(fMatrix);
+
+         pkDef = getProbabilityDefenderWin(fMatrix.getArrayCopy());
          long afterPDef = System.currentTimeMillis();
          System.out.println("generated pzDef, elapsed Time: "+ (afterPDef - afterPAtt) + " millis");
+
          erMatrix = getMatrixER(fMatrix, eMatrix);
          long afterER = System.currentTimeMillis();
          System.out.println("generated er, elapsed Time: " + (afterER - afterPDef) + " millis");
+
          generatedERWithStates = generateMatrixForERStates(erMatrix);
          long afterGeneratedStates = System.currentTimeMillis();
          System.out.println("generated erwithstates, elapsed Time: " + (afterGeneratedStates - afterER) + " millis");
@@ -89,8 +104,8 @@ public class MatrixGenerator {
     /**
      * @return [attacker*defender][attacker*defender]: probabilities for transition only between transient states
      */
-    public double[][] getMatrixQ() {
-        double [][] qMatrix = fillWithZero(attacker*defender, attacker*defender);
+    public Matrix getMatrixQ() {
+        double [][] qArray = fillWithZero(attacker*defender, attacker*defender);
         String[][] initialMatrix = getInitialQ();
         String[][] currentTransitionMatrix = getTransitionQ();
 
@@ -98,8 +113,8 @@ public class MatrixGenerator {
         int initialDefender = 0;
         int transitionDefender = 0;
         int transitionAttacker = 0;
-        for (int i = 0; i < qMatrix.length; i++){
-            for (int j = 0; j < qMatrix[(i)].length; j++){
+        for (int i = 0; i < qArray.length; i++){
+            for (int j = 0; j < qArray[(i)].length; j++){
                 String[] initialArray = initialMatrix[i][j].split(" ");
                 String[] transitionArray = currentTransitionMatrix[i][j].split(" ");
                 initialAttacker = Integer.parseInt(initialArray[0]);
@@ -109,33 +124,33 @@ public class MatrixGenerator {
 
                 if (initialAttacker == 1 && initialDefender == 1) {
                     // case 11 -> only absorbing states possible
-                    qMatrix[i][j] = 0.0;
+                    qArray[i][j] = 0.0;
                 }
                 if (initialAttacker == 2 && initialDefender == 1) {
                     if (transitionAttacker == 1 && transitionDefender == 1) {
                         // case 21->11
-                        qMatrix[i][j] = a2d1_to_a1d1;
+                        qArray[i][j] = a2d1_to_a1d1;
                     }
                 }
                 if (initialAttacker >= 3 && initialDefender == 1){
                     if (transitionAttacker == initialAttacker - 1 && transitionDefender == 1) {
                         // we're going to state a-1, 1
-                        qMatrix[i][j] = a3d1_to_aMin1d1;
+                        qArray[i][j] = a3d1_to_aMin1d1;
                     }
                 }
                 if (initialAttacker == 1 && initialDefender >= 2) {
                     if (transitionAttacker == 1 && transitionDefender == initialDefender - 1) {
                         // we're going to state 1, d-1
-                        qMatrix[i][j] = a1d2_to_a1dMin1;
+                        qArray[i][j] = a1d2_to_a1dMin1;
                     }
                 }
                 if (initialAttacker == 2 && initialDefender >= 2) {
                     if (transitionAttacker == 2 && transitionDefender == initialDefender - 2) {
                         //we're going to state 2,d-2
-                        qMatrix[i][j] = a2d2_to_a2dMin2;
+                        qArray[i][j] = a2d2_to_a2dMin2;
                     } else if (transitionAttacker == 1 && transitionDefender == initialDefender - 1) {
                         // we're going to state 1, d-1
-                        qMatrix[i][j] = a2d2_to_a1dMin1;
+                        qArray[i][j] = a2d2_to_a1dMin1;
                     }
                 }
 
@@ -143,19 +158,20 @@ public class MatrixGenerator {
                     //attacker has 3 dices, defender 2
                     if (transitionAttacker == initialAttacker && transitionDefender == initialDefender - 2) {
                         //we're going to state a,d-2
-                        qMatrix[i][j] = a3d2_to_a3dMin2;
+                        qArray[i][j] = a3d2_to_a3dMin2;
                     }
                     if (transitionAttacker == initialAttacker - 2 && transitionDefender == initialDefender) {
                         // we're going to state a-2, d
-                        qMatrix[i][j] = a3d2_to_aMin2d2;
+                        qArray[i][j] = a3d2_to_aMin2d2;
                     }
                     if (transitionAttacker == initialAttacker - 1 && transitionDefender == initialDefender - 1) {
                         // we're going to state a-1, d-1
-                        qMatrix[i][j] = a3d2_to_aMin1dMin1;
+                        qArray[i][j] = a3d2_to_aMin1dMin1;
                     }
                 }
             }
         }
+        Matrix qMatrix = new Matrix(qArray);
         return qMatrix;
     }
 
@@ -221,16 +237,16 @@ public class MatrixGenerator {
      *
      * @return [attacker+defender][attacker*defender]: one-step probabilities from a transient to an absorbing state
      */
-    public double[][] getMatrixR() {
-        double[][] rMatrix = fillWithZero(attacker+defender, attacker*defender);
+    public Matrix getMatrixR() {
+        double[][] rArray = fillWithZero(attacker+defender, attacker*defender);
         String[][] transitionM = getTransitionR();
         String[][] initialM = getInitialR();
         int currentInitialAttacker = 0;
         int currentInitialDefender = 0;
         int currentTransitionAttacker = 0;
         int currentTransitionDefender = 0;
-        for (int i = 0; i < rMatrix.length; i++) {
-            for (int j = 0; j < rMatrix[i].length; j++) {
+        for (int i = 0; i < rArray.length; i++) {
+            for (int j = 0; j < rArray[i].length; j++) {
                 String[] initialArray = initialM[i][j].split(" ");
                 currentInitialAttacker = Integer.parseInt(initialArray[0]);
                 currentInitialDefender = Integer.parseInt(initialArray[1]);
@@ -240,44 +256,44 @@ public class MatrixGenerator {
                 if (currentInitialAttacker == 1 && currentInitialDefender == 1) {
                     if (currentTransitionAttacker == 0 && currentTransitionDefender == 1) {
                         // we're going from 11->01
-                        rMatrix[i][j] = a1d1_to_a0d1;
+                        rArray[i][j] = a1d1_to_a0d1;
                     }
                 }
                 if (currentInitialAttacker == 1 && currentInitialDefender == 1) {
                     if (currentTransitionAttacker == 1 && currentTransitionDefender == 0) {
                         // we're going from 11->10
-                        rMatrix[i][j] = a1d1_to_a1ad0;
+                        rArray[i][j] = a1d1_to_a1ad0;
                     }
                 }
                 if (currentInitialAttacker == 2 && currentInitialDefender == 1) {
                     if (currentTransitionAttacker == 2 && currentTransitionDefender == 0) {
                         // we're going from 21->20
-                        rMatrix[i][j] = a2d1_to_a2d0;
+                        rArray[i][j] = a2d1_to_a2d0;
                     }
                 }
                 if (currentInitialAttacker >= 3 && currentInitialDefender == 1) {
                     if (currentInitialAttacker == currentTransitionAttacker) {
                         if (currentTransitionDefender == 0) {
                             // we're going from a1->a0
-                            rMatrix[i][j] = a3d1_to_a3d0;
+                            rArray[i][j] = a3d1_to_a3d0;
                         }
                     }
                 }
                 if (currentInitialAttacker == 1 && currentInitialDefender >= 2) {
                     if (currentTransitionAttacker == 0 && currentTransitionDefender == currentInitialDefender) {
                         // we're going from 1d->0d
-                        rMatrix[i][j] = a1d2_to_a0d2;
+                        rArray[i][j] = a1d2_to_a0d2;
                     }
                 }
                 if (currentInitialAttacker == 2 && currentTransitionDefender >= 2) {
                     if (currentTransitionAttacker == 0 && currentTransitionDefender == currentInitialDefender){
                         // we're going from 2d->0d
-                        rMatrix[i][j] = a2d2_to_a0d2;
+                        rArray[i][j] = a2d2_to_a0d2;
                     }
                     if (currentTransitionAttacker == 2 && currentTransitionDefender == currentInitialDefender - 2) {
                         if (currentInitialDefender - 2 == 0) {
                             // we're going from 2d->2 d-2, and d-2 is zero
-                            rMatrix[i][j] = a2d2_to_a2dMin2;
+                            rArray[i][j] = a2d2_to_a2dMin2;
                         }
                     }
                 }
@@ -285,12 +301,14 @@ public class MatrixGenerator {
                     if (currentTransitionAttacker == currentInitialAttacker && currentTransitionDefender == currentInitialDefender - 2) {
                         if (currentInitialDefender - 2 == 0) {
                             // we're going from ad-> a d-2 and d-2 is zero
-                            rMatrix[i][j] = a3d2_to_a3dMin2;
+                            rArray[i][j] = a3d2_to_a3dMin2;
                         }
                     }
                 }
             }
         }
+        Matrix rMatrix = new Matrix(rArray);
+        rMatrix.transpose();
         return rMatrix;
     }
 
@@ -354,8 +372,8 @@ public class MatrixGenerator {
      * @return [attacker * defender][2] expected remaining armies (first column == defender, second column == attacker)
      *
      */
-    public double[][] getMatrixER(double[][] fMatrix, double[][] eMatrix) {
-        return multiplyMatrix(fMatrix, eMatrix);
+    public double[][] getMatrixER(Matrix fMatrix, Matrix eMatrix) {
+        return fMatrix.times(eMatrix).getArrayCopy();
     }
 
     public String[][] generateMatrixForERStates(double[][] erMatrix) {
@@ -436,32 +454,54 @@ public class MatrixGenerator {
     }
 
     /**
+     * F - Matrix calculations
+     */
+    /**
+     *
+     * @param rMatrix
+     * @param qMatrix
+     * @return double[attacker*defender][attacker+defender], probabilities for starting in a transient state,
+     *      *  landing in an absorbing state
+     */
+    public Matrix getMatrixF_test(Matrix rMatrix, Matrix qMatrix) {
+
+        Matrix identityQMatrix = qMatrix.identity(qMatrix.getRowDimension(), qMatrix.getRowDimension());
+        Matrix subtractIQ = identityQMatrix.minus(qMatrix);
+        Matrix inverseOfSubtractIQ = subtractIQ.inverse();
+
+
+        return inverseOfSubtractIQ.times(rMatrix);
+    }
+
+    /**
      * E - Matrix calculations
      */
     /**
      * @return double[attacker+defender][2], all transient state ([1...0D...0]; [0...1...A])
      */
-    public double[][] getMatrixE() {
-        double[][] eMatrix = new double[2][attacker+defender];
+    public Matrix getMatrixE() {
+        double[][] eArray = new double[2][attacker+defender];
         int countFirstRow = 1;
         int countSecRow = 0;
-        for (int i = 0; i < eMatrix[0].length; i++) {
+        for (int i = 0; i < eArray[0].length; i++) {
             // fill first row (1...D and then 0)
             if (countFirstRow > defender) {
                 countFirstRow = 0;
             }
-            eMatrix[0][i] = countFirstRow;
+            eArray[0][i] = countFirstRow;
             if (countFirstRow != 0) {
                 countFirstRow++;
             }
         }
-        for (int i = 0; i < eMatrix[1].length; i++) {
+        for (int i = 0; i < eArray[1].length; i++) {
             // fill second row (zeros until D is reached, then 1...A)
             if (i >= defender) {
                 countSecRow++;
             }
-            eMatrix[1][i] = countSecRow;
+            eArray[1][i] = countSecRow;
         }
+        Matrix eMatrix = new Matrix(eArray);
+        eMatrix.transpose();
         return eMatrix;
     }
 
