@@ -1,0 +1,3 @@
+20x20: generate f: 69329 millis = 1.15min
+25x25: generate f: 349921 millis = 5.8min
+30x30: generate f: 1327932 millis = 22.13min

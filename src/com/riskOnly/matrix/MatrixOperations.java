@@ -22,6 +22,17 @@ public class MatrixOperations {
         System.out.println("----------");
     }
 
+    public static void printStringMatrix(String[][] matrix, String name) {
+        System.out.println("----------\n" + name + " : ");
+        for (int row = 0; row < matrix.length; row++) {
+            for (int col = 0; col < matrix[row].length; col++) {
+                System.out.print(matrix[row][col] + " | ");
+            }
+            System.out.println();
+        }
+        System.out.println("----------");
+    }
+
     /**
      * fills matrix with zero
      * @param length

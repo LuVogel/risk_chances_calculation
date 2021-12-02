@@ -10,6 +10,7 @@ public class SparseMatrix {
         this.row = r;
         this.col = c;
         this.len = 0;
+        this.max = max;
         matrix = new double[max][3];
 
     }
@@ -26,7 +27,9 @@ public class SparseMatrix {
         }
     }
 
+
     public SparseMatrix add(SparseMatrix sparseMatrix) {
+        // matrix need same dimension
         if (row != sparseMatrix.row || col != sparseMatrix.col) {
             System.out.println("addition not possible");
             System.exit(-1);
@@ -37,19 +40,23 @@ public class SparseMatrix {
             SparseMatrix result = new SparseMatrix(row, col, (sparseMatrix.len + len));
 
             while (pos_1 < len && pos_2 < sparseMatrix.len) {
+
+                // row and column of second matrix is smaller than first
                 if (matrix[pos_1][0] > sparseMatrix.matrix[pos_2][0] ||
                         (matrix[pos_1][0] == sparseMatrix.matrix[pos_2][0] &&
                                 matrix[pos_1][1] > sparseMatrix.matrix[pos_2][1])) {
+
                     result.insertSparse((int)sparseMatrix.matrix[pos_2][0],
                             (int)sparseMatrix.matrix[pos_2][1],
                             sparseMatrix.matrix[pos_2][2]);
+
                     pos_2++;
                 } else if (matrix[pos_1][0] < sparseMatrix.matrix[pos_2][0] ||
                         (matrix[pos_1][0] == sparseMatrix.matrix[pos_2][0] &&
                                 matrix[pos_1][1] < sparseMatrix.matrix[pos_2][1])) {
                     result.insertSparse((int)matrix[pos_1][0],
                             (int)matrix[pos_1][1],
-                            matrix[pos_2][2]);
+                            matrix[pos_1][2]);
                     pos_1++;
                 } else {
                     double sum = matrix[pos_1][2] + sparseMatrix.matrix[pos_2][2];
@@ -88,8 +95,8 @@ public class SparseMatrix {
             count[(int)matrix[i][1]]++;
         }
         int[] index = new int[col+1];
-        index[1] = 0;
-        for (int i = 2; i <= col; i++) {
+
+        for (int i = 1; i <= col; i++) {
             index[i] = index[i-1] + count[i-1];
         }
         for (int i = 0; i < len; i++) {
@@ -148,10 +155,46 @@ public class SparseMatrix {
     }
 
     public void printSparse(String name) {
-        System.out.println("Dimension: " + row + "x" + col + "\nSparse Matrix ----> " + name + "\nRow Column Value");
+        System.out.println("Dimension: " + row + "x" + col + "\nSparse Matrix ----> " + name + "\nNumb of Elements: " + this.len + "\nRow Column Value");
         for (int i = 0; i < len; i++) {
             System.out.println(matrix[i][0] + " " + matrix[i][1] + " " + matrix[i][2]);
         }
     }
 
+    public SparseMatrix multiplySparseNTimes(double exponent) {
+        SparseMatrix tmp = this;
+        SparseMatrix sum = new SparseMatrix(this.col, this.row, this.max);
+        if (exponent == 0) {
+            for (int i = 0; i < this.row; i++) {
+                for (int j = 0; j < this.col; j++) {
+                    if (i == j) {
+                        sum.insertSparse(i, j, 1);
+                    }
+                }
+            }
+            tmp = sum;
+        } else {
+            for (int i = 0; i <= exponent -2; i++) {
+                sum = tmp.multiplySparse(this);
+                tmp = sum;
+            }
+        }
+        return tmp;
+    }
+
+    public double[][] getMatrix() {
+        return matrix;
+    }
+
+    public int getRow() {
+        return row;
+    }
+
+    public int getCol() {
+        return col;
+    }
+
+    public int getLen() {
+        return len;
+    }
 }

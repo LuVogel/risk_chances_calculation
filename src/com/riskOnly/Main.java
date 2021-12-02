@@ -20,30 +20,55 @@ public class Main {
 
 
     public static void main(String[] args) {
-        /**
-        SparseMatrix sparseMatrix = new SparseMatrix(4, 4, 4*4);
-        sparseMatrix.insertSparse(1, 2, 10);
-        sparseMatrix.insertSparse(1, 4, 12);
-        sparseMatrix.insertSparse(3, 3, 5);
-        sparseMatrix.insertSparse(4, 1, 15);
-        sparseMatrix.insertSparse(4, 2, 12);
 
-        SparseMatrix b = sparseMatrix.multiplySparse(sparseMatrix);
-        sparseMatrix.printSparse("1.");
-        b.printSparse("transposed");
-         **/
+/**
+        SparseMatrix a = new SparseMatrix(4, 4, 4*4);
 
-        matrixGenerator = new MatrixGenerator(7, 3);
+
+        SparseMatrix b = new SparseMatrix(4, 4, 4*4);
+
+        a.insertSparse(1, 2, 10);
+        a.insertSparse(1, 4, 12);
+        a.insertSparse(3, 3, 5);
+        a.insertSparse(4, 1, 15);
+        a.insertSparse(4, 2, 12);
+        b.insertSparse(1, 3, 8);
+        b.insertSparse(2, 4, 23);
+        b.insertSparse(3, 3, 9);
+        b.insertSparse(4, 1, 20);
+        b.insertSparse(4, 2, 25);
+
+
+
+        SparseMatrix b1 = a.add(b);
+
+        a.printSparse("1.");
+        b.printSparse("2.");
+        b1.printSparse("add");
+
+**/
+        matrixGenerator = new MatrixGenerator(33, 33);
         int attacker = matrixGenerator.getAttacker();
         int defender = matrixGenerator.getDefender();
 
-        double[][] erMatrix = matrixGenerator.getCalculatedERMatrix();
-        double[] pzAtt = matrixGenerator.getCalculatedPzAtt();
+        double[] erAtt = matrixGenerator.getEr_att();
+        double[] erDef = matrixGenerator.getEr_def();
+
         double[] pkDef = matrixGenerator.getCalculatedPkDef();
+        double[] pzAtt = matrixGenerator.getCalculatedPzAtt();
+
         String[][] generatedERMatrixWithStates = matrixGenerator.getCalculatedERWithStates();
 
+        /*
+        System.out.println("dimension: " + pzAtt.length);
+        for (int i = 0; i < pzAtt.length; i++) {
+            System.out.println("att: = " + pzAtt[i] + ", deff: = " + pkDef[i]);
+        }
 
 
+        System.out.println(erAtt[erAtt.length-1]);
+        System.out.println(erDef[erDef.length-1]);
+*/
 
 /**
         printMatrix(qMatrix, "Q Matrix: ");
@@ -56,11 +81,11 @@ public class Main {
 
 
 **/
-        //printMatrix(erMatrix, "ER Matrix");
+
 
         System.out.println("When attacking with " + attacker + " units and defender has " + defender + " units. " +
-                "\nexpected remaining attacking units: " + erMatrix[erMatrix.length-1][1] +
-                "\nexpected remaining defending units: " + erMatrix[erMatrix.length-1][0] +
+                "\nexpected remaining attacking units: " +  erAtt[erAtt.length-1] +
+                "\nexpected remaining defending units: " + erDef[erDef.length-1] +
                 "\nWinning probability that attacker wins: " + pzAtt[pzAtt.length-1] +
                 "\nWinning probability that defender wins: " + pkDef[pkDef.length-1]);
 
@@ -95,13 +120,14 @@ public class Main {
 
                 }
 
-
+/**
                 System.out.println("When attacking with " + (attacker-attackerLosses) + " units and defender has "
                         + (defender-defenderLosses) + " units. " +
-                        "\nexpected remaining attacking units: " + erMatrix[currentIPosition][1] +
-                        "\nexpected remaining defending units: " + erMatrix[currentIPosition][0] +
+                        "\nexpected remaining attacking units: " + sparseER[currentIPosition][1] +
+                        "\nexpected remaining defending units: " + sparseER[currentIPosition][0] +
                         "\nWinning probability that attacker wins: " + pzAtt[currentIPosition] +
                         "\nWinning probability that defender wins: " + pkDef[currentIPosition]);
+            **/
             }
         }
 

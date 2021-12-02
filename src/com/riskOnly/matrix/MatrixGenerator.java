@@ -1,7 +1,5 @@
 package com.riskOnly.matrix;
 
-import static com.riskOnly.matrix.MatrixOperations.*;
-
 /**
  * generates all vectors and matrices needed
  */
@@ -22,10 +20,12 @@ public class MatrixGenerator {
     static double a2d1_to_a2d0 = 0.5787;
 
     int attacker, defender;
-    double[][] erMatrix;
     String[][] generatedERWithStates;
     double[] pzAtt;
     double[] pkDef;
+    double[] er_def;
+    double[] er_att;
+    public int position_helper;
 
      public MatrixGenerator(int attacker, int defender) {
          this.attacker = attacker;
@@ -35,35 +35,87 @@ public class MatrixGenerator {
 
      private void generateAllMatrices() {
          long startTime = System.currentTimeMillis();
-         double[][] qMatrix = getMatrixQ();
+         SparseMatrix sparseQ = generatedSparseQ();
+
+
          long afterQ = System.currentTimeMillis();
          System.out.println("generated q, elapsed Time: " + (afterQ - startTime) + " millis seconds");
-         double[][] rMatrix = transposeMatrix(getMatrixR());
+
+
+         SparseMatrix sparseR = generateSparseR();
          long afterR = System.currentTimeMillis();
          System.out.println("generated r, elapsed Time: " + (afterR - afterQ) + " millis");
-         double[][] eMatrix = transposeMatrix(getMatrixE());
+
+
+         SparseMatrix sparseE = generateSparseE();
          long afterE = System.currentTimeMillis();
          System.out.println("generated e, elapsed Time: " + (afterE - afterR) + " millis");
-         double[][] fMatrix = getMatrixF(rMatrix, qMatrix);
+
+
+         SparseMatrix sparseF = generateSparseF(sparseR, sparseQ);
          long afterF = System.currentTimeMillis();
          System.out.println("generated f, elapsed Time: " + (afterF - afterE) + " millis");
-         pzAtt = getProbabilityAttackerWin(fMatrix);
-         long afterPAtt = System.currentTimeMillis();
-         System.out.println("generated pkAtt, elapsed Time: " + (afterPAtt - afterF) + " millis");
-         pkDef = getProbabilityDefenderWin(fMatrix);
+
+         pkDef = getProbabilityDefenderWin(sparseF);
          long afterPDef = System.currentTimeMillis();
-         System.out.println("generated pzDef, elapsed Time: "+ (afterPDef - afterPAtt) + " millis");
-         erMatrix = getMatrixER(fMatrix, eMatrix);
+         System.out.println("generated pzDef, elapsed Time: "+ (afterPDef - afterF) + " millis");
+
+         int position_helper = getPosition_helper();
+         pzAtt = getProbabilityAttackerWin(sparseF, position_helper);
+         long afterPAtt = System.currentTimeMillis();
+         System.out.println("generated pkAtt, elapsed Time: " + (afterPAtt - afterPDef) + " millis");
+
+
+
+
+
+         SparseMatrix sparseER = generateSparseER(sparseF, sparseE);
+
+         er_def = generateDefenderER(sparseER);
+         er_att = generateAttackerER(sparseER);
          long afterER = System.currentTimeMillis();
          System.out.println("generated er, elapsed Time: " + (afterER - afterPDef) + " millis");
-         generatedERWithStates = generateMatrixForERStates(erMatrix);
+
+         generatedERWithStates = generateMatrixForERStates(sparseER);
          long afterGeneratedStates = System.currentTimeMillis();
          System.out.println("generated erwithstates, elapsed Time: " + (afterGeneratedStates - afterER) + " millis");
      }
 
-     public double[][] getCalculatedERMatrix() {
-         return erMatrix;
+     public double[] generateDefenderER(SparseMatrix sparseER) {
+         int position = 0;
+         int res_counter = 0;
+         double[] res = new double[sparseER.len / 2];
+         while (position < sparseER.len) {
+             res[res_counter] = sparseER.matrix[position][2];
+             position++;
+             position++;
+             res_counter++;
+         }
+         return res;
      }
+
+     public double[] generateAttackerER(SparseMatrix sparseER) {
+         int position = 1;
+         int res_counter = 0;
+         double[] res = new double[sparseER.len / 2];
+         while (position < sparseER.len) {
+             res[res_counter] = sparseER.matrix[position][2];
+             position++;
+             position++;
+             res_counter++;
+         }
+         return res;
+     }
+
+    public double[] getEr_def() {
+         return er_def;
+    }
+
+    public double[] getEr_att() {
+         return er_att;
+    }
+
+
      public double[] getCalculatedPzAtt(){
          return pzAtt;
      }
@@ -89,8 +141,8 @@ public class MatrixGenerator {
     /**
      * @return [attacker*defender][attacker*defender]: probabilities for transition only between transient states
      */
-    public double[][] getMatrixQ() {
-        double [][] qMatrix = fillWithZero(attacker*defender, attacker*defender);
+    public SparseMatrix generatedSparseQ() {
+        SparseMatrix sparseQ = new SparseMatrix(attacker*defender, attacker*defender, (attacker*defender)*(attacker*defender));
         String[][] initialMatrix = getInitialQ();
         String[][] currentTransitionMatrix = getTransitionQ();
 
@@ -98,8 +150,8 @@ public class MatrixGenerator {
         int initialDefender = 0;
         int transitionDefender = 0;
         int transitionAttacker = 0;
-        for (int i = 0; i < qMatrix.length; i++){
-            for (int j = 0; j < qMatrix[(i)].length; j++){
+        for (int i = 0; i < sparseQ.col; i++){
+            for (int j = 0; j < sparseQ.row; j++){
                 String[] initialArray = initialMatrix[i][j].split(" ");
                 String[] transitionArray = currentTransitionMatrix[i][j].split(" ");
                 initialAttacker = Integer.parseInt(initialArray[0]);
@@ -107,56 +159,45 @@ public class MatrixGenerator {
                 transitionAttacker = Integer.parseInt(transitionArray[0]);
                 transitionDefender = Integer.parseInt(transitionArray[1]);
 
-                if (initialAttacker == 1 && initialDefender == 1) {
-                    // case 11 -> only absorbing states possible
-                    qMatrix[i][j] = 0.0;
-                }
                 if (initialAttacker == 2 && initialDefender == 1) {
                     if (transitionAttacker == 1 && transitionDefender == 1) {
                         // case 21->11
-                        qMatrix[i][j] = a2d1_to_a1d1;
+                        sparseQ.insertSparse(i, j, a2d1_to_a1d1);
                     }
-                }
-                if (initialAttacker >= 3 && initialDefender == 1){
+                } else if (initialAttacker >= 3 && initialDefender == 1){
                     if (transitionAttacker == initialAttacker - 1 && transitionDefender == 1) {
                         // we're going to state a-1, 1
-                        qMatrix[i][j] = a3d1_to_aMin1d1;
+                        sparseQ.insertSparse(i, j, a3d1_to_aMin1d1);
                     }
-                }
-                if (initialAttacker == 1 && initialDefender >= 2) {
+                } else if (initialAttacker == 1 && initialDefender >= 2) {
                     if (transitionAttacker == 1 && transitionDefender == initialDefender - 1) {
                         // we're going to state 1, d-1
-                        qMatrix[i][j] = a1d2_to_a1dMin1;
+                        sparseQ.insertSparse(i, j, a1d2_to_a1dMin1);
                     }
-                }
-                if (initialAttacker == 2 && initialDefender >= 2) {
+                } else if (initialAttacker == 2 && initialDefender >= 2) {
                     if (transitionAttacker == 2 && transitionDefender == initialDefender - 2) {
                         //we're going to state 2,d-2
-                        qMatrix[i][j] = a2d2_to_a2dMin2;
+                        sparseQ.insertSparse(i, j, a2d2_to_a2dMin2);
                     } else if (transitionAttacker == 1 && transitionDefender == initialDefender - 1) {
                         // we're going to state 1, d-1
-                        qMatrix[i][j] = a2d2_to_a1dMin1;
+                        sparseQ.insertSparse(i, j, a2d2_to_a1dMin1);
                     }
-                }
-
-                if (initialAttacker >= 3 && initialDefender >= 2) {
+                } else if (initialAttacker >= 3 && initialDefender >= 2) {
                     //attacker has 3 dices, defender 2
                     if (transitionAttacker == initialAttacker && transitionDefender == initialDefender - 2) {
                         //we're going to state a,d-2
-                        qMatrix[i][j] = a3d2_to_a3dMin2;
-                    }
-                    if (transitionAttacker == initialAttacker - 2 && transitionDefender == initialDefender) {
+                        sparseQ.insertSparse(i, j, a3d2_to_a3dMin2);
+                    } else if (transitionAttacker == initialAttacker - 2 && transitionDefender == initialDefender) {
                         // we're going to state a-2, d
-                        qMatrix[i][j] = a3d2_to_aMin2d2;
-                    }
-                    if (transitionAttacker == initialAttacker - 1 && transitionDefender == initialDefender - 1) {
+                        sparseQ.insertSparse(i, j, a3d2_to_aMin2d2);
+                    } else if (transitionAttacker == initialAttacker - 1 && transitionDefender == initialDefender - 1) {
                         // we're going to state a-1, d-1
-                        qMatrix[i][j] = a3d2_to_aMin1dMin1;
+                        sparseQ.insertSparse(i, j, a3d2_to_aMin1dMin1);
                     }
                 }
             }
         }
-        return qMatrix;
+        return sparseQ;
     }
 
     /**
@@ -178,7 +219,7 @@ public class MatrixGenerator {
                     secCounter = 0;
                     firstCounter++;
                 }
-                transitionM[i][j] = Integer.toString(firstCounter+1) + " " + Integer.toString(secCounter+1);
+                transitionM[i][j] = (firstCounter+1) + " " + (secCounter+1);
                 // increase counter for second value in string
                 secCounter++;
             }
@@ -221,16 +262,16 @@ public class MatrixGenerator {
      *
      * @return [attacker+defender][attacker*defender]: one-step probabilities from a transient to an absorbing state
      */
-    public double[][] getMatrixR() {
-        double[][] rMatrix = fillWithZero(attacker+defender, attacker*defender);
+    public SparseMatrix generateSparseR() {
+        SparseMatrix sparseR = new SparseMatrix(attacker*defender, attacker+defender, (attacker*defender) + (attacker+defender));
         String[][] transitionM = getTransitionR();
         String[][] initialM = getInitialR();
         int currentInitialAttacker = 0;
         int currentInitialDefender = 0;
         int currentTransitionAttacker = 0;
         int currentTransitionDefender = 0;
-        for (int i = 0; i < rMatrix.length; i++) {
-            for (int j = 0; j < rMatrix[i].length; j++) {
+        for (int i = 0; i < attacker*defender; i++) {
+            for (int j = 0; j < attacker+defender; j++) {
                 String[] initialArray = initialM[i][j].split(" ");
                 currentInitialAttacker = Integer.parseInt(initialArray[0]);
                 currentInitialDefender = Integer.parseInt(initialArray[1]);
@@ -240,44 +281,44 @@ public class MatrixGenerator {
                 if (currentInitialAttacker == 1 && currentInitialDefender == 1) {
                     if (currentTransitionAttacker == 0 && currentTransitionDefender == 1) {
                         // we're going from 11->01
-                        rMatrix[i][j] = a1d1_to_a0d1;
+                        sparseR.insertSparse(i, j, a1d1_to_a0d1);
                     }
                 }
                 if (currentInitialAttacker == 1 && currentInitialDefender == 1) {
                     if (currentTransitionAttacker == 1 && currentTransitionDefender == 0) {
                         // we're going from 11->10
-                        rMatrix[i][j] = a1d1_to_a1ad0;
+                        sparseR.insertSparse(i, j, a1d1_to_a1ad0);
                     }
                 }
                 if (currentInitialAttacker == 2 && currentInitialDefender == 1) {
                     if (currentTransitionAttacker == 2 && currentTransitionDefender == 0) {
                         // we're going from 21->20
-                        rMatrix[i][j] = a2d1_to_a2d0;
+                        sparseR.insertSparse(i, j, a2d1_to_a2d0);
                     }
                 }
                 if (currentInitialAttacker >= 3 && currentInitialDefender == 1) {
                     if (currentInitialAttacker == currentTransitionAttacker) {
                         if (currentTransitionDefender == 0) {
                             // we're going from a1->a0
-                            rMatrix[i][j] = a3d1_to_a3d0;
+                            sparseR.insertSparse(i, j, a3d1_to_a3d0);
                         }
                     }
                 }
                 if (currentInitialAttacker == 1 && currentInitialDefender >= 2) {
                     if (currentTransitionAttacker == 0 && currentTransitionDefender == currentInitialDefender) {
                         // we're going from 1d->0d
-                        rMatrix[i][j] = a1d2_to_a0d2;
+                        sparseR.insertSparse(i, j, a1d2_to_a0d2);
                     }
                 }
-                if (currentInitialAttacker == 2 && currentTransitionDefender >= 2) {
+                if (currentInitialAttacker == 2 && currentInitialDefender >= 2) {
                     if (currentTransitionAttacker == 0 && currentTransitionDefender == currentInitialDefender){
                         // we're going from 2d->0d
-                        rMatrix[i][j] = a2d2_to_a0d2;
+                        sparseR.insertSparse(i, j, a2d2_to_a0d2);
                     }
                     if (currentTransitionAttacker == 2 && currentTransitionDefender == currentInitialDefender - 2) {
                         if (currentInitialDefender - 2 == 0) {
                             // we're going from 2d->2 d-2, and d-2 is zero
-                            rMatrix[i][j] = a2d2_to_a2dMin2;
+                            sparseR.insertSparse(i, j, a2d2_to_a2dMin2);
                         }
                     }
                 }
@@ -285,13 +326,13 @@ public class MatrixGenerator {
                     if (currentTransitionAttacker == currentInitialAttacker && currentTransitionDefender == currentInitialDefender - 2) {
                         if (currentInitialDefender - 2 == 0) {
                             // we're going from ad-> a d-2 and d-2 is zero
-                            rMatrix[i][j] = a3d2_to_a3dMin2;
+                            sparseR.insertSparse(i, j, a3d2_to_a3dMin2);
                         }
                     }
                 }
             }
         }
-        return rMatrix;
+        return sparseR;
     }
 
     /**
@@ -299,22 +340,19 @@ public class MatrixGenerator {
      * @return all initial states relevant for R
      */
     private String[][] getInitialR() {
-        String[][] initialMatrix = new String[attacker+defender][attacker*defender];
+        String[][] initialMatrix = new String[attacker*defender][attacker+defender];
         int secCounter = 0;
         int firstCounter = 0;
-        for (int i = 0; i < (attacker+defender); i++) {
-            for (int j = 0; j < initialMatrix[i].length; j++) {
-                if (j == 0) {
-                    secCounter = 0;
-                }
-                if (secCounter >= defender) {
-                    secCounter = 0;
-                    firstCounter++;
-                }
-                initialMatrix[i][j] = Integer.toString(firstCounter + 1) + " " +  Integer.toString(secCounter + 1);
-                secCounter++;
+        for (int i = 0; i < attacker*defender; i++) {
+            for (int j = 0; j < (attacker+defender); j++) {
+                initialMatrix[i][j] = (firstCounter + 1) + " " + (secCounter + 1);
             }
-            firstCounter = 0;
+            secCounter++;
+            if (secCounter >= defender) {
+                secCounter = 0;
+                firstCounter++;
+            }
+
         }
         return initialMatrix;
     }
@@ -324,20 +362,23 @@ public class MatrixGenerator {
      * @return all transient states relevant for R
      */
     private String[][] getTransitionR() {
-        String[][] transitionMatrix = new String[attacker+defender][attacker*defender];
+        String[][] transitionMatrix = new String[attacker*defender][attacker+defender];
         int secCounter = 1;
         int firstCounter = 0;
-        for (int i = 0; i < (attacker+defender); i++) {
-            for (int j = 0; j < transitionMatrix[i].length; j++) {
-                transitionMatrix[i][j] = Integer.toString(firstCounter) + " " + Integer.toString(secCounter);
-            }
-            if (secCounter >= defender) {
-                secCounter = 0;
-                firstCounter++;
-            } else if (secCounter != 0){
-                secCounter++;
-            } else {
-                firstCounter++;
+        for (int i = 0; i < (attacker*defender); i++) {
+            for (int j = 0; j < attacker+defender; j++) {
+                if (j == 0) {
+                    secCounter = 1;
+                    firstCounter = 0;
+                }
+                transitionMatrix[i][j] = firstCounter + " " + secCounter;
+
+                if (secCounter >= defender || secCounter == 0) {
+                    secCounter = 0;
+                    firstCounter++;
+                } else {
+                    secCounter++;
+                }
             }
         }
         return transitionMatrix;
@@ -354,12 +395,12 @@ public class MatrixGenerator {
      * @return [attacker * defender][2] expected remaining armies (first column == defender, second column == attacker)
      *
      */
-    public double[][] getMatrixER(double[][] fMatrix, double[][] eMatrix) {
-        return multiplyMatrix(fMatrix, eMatrix);
+    public SparseMatrix generateSparseER(SparseMatrix fMatrix, SparseMatrix eMatrix) {
+        return fMatrix.multiplySparse(eMatrix);
     }
 
-    public String[][] generateMatrixForERStates(double[][] erMatrix) {
-        String[][] generatedStateMatrix = new String[erMatrix.length][1];
+    public String[][] generateMatrixForERStates(SparseMatrix erMatrix) {
+        String[][] generatedStateMatrix = new String[erMatrix.len][1];
         int firstDigit = 1;
         int secondDigit = 1;
         for (int i = 0; i < generatedStateMatrix.length; i++) {
@@ -384,85 +425,145 @@ public class MatrixGenerator {
      */
     /**
      *
-     * @param erMatrix [attacker*defender][2] expected remaining armies
+     * @param sparseF [attacker*defender][2] expected remaining armies
      * @return probabilities that defender wins for start states (11,...,1D,21,...,2D,...,A1,...,AD)
      */
-    public double[] getProbabilityDefenderWin(double[][] erMatrix) {
-        double[] pKDef = new double[erMatrix.length];
-        for (int i = 0; i < defender; i++) {
-            for (int j = 0; j < erMatrix.length; j++) {
-                pKDef[j] += erMatrix[j][i];
+    public double[] getProbabilityDefenderWin(SparseMatrix sparseF) {
+        double[] pk_def = new double[sparseF.row];
+        int position = 0;
+        int attack_count = 0;
+        int defend_count = 0;
+        double sum = 0;
+        int pk_counter = 0;
+
+        while (position < sparseF.len) {
+            if (sparseF.matrix[position][0] == attack_count && sparseF.matrix[position][1] == defend_count) {
+                sum += sparseF.matrix[position][2];
+                position++;
             }
+            if (defend_count >= defender-1) {
+                defend_count = 0;
+                if (attack_count < attacker*defender-1) {
+                    attack_count++;
+                }
+                pk_def[pk_counter] = sum;
+                pk_counter++;
+                sum = 0;
+                while (sparseF.matrix[position][0] < attack_count) {
+                    position++;
+                }
+            } else {
+                defend_count++;
+            }
+            if (sparseF.matrix[position][0] == attacker*defender-1 && sparseF.matrix[position][1] == defender) {
+                position = sparseF.len;
+            }
+
         }
-        return pKDef;
+        position_helper = position;
+        return pk_def;
+    }
+
+    public int getPosition_helper() {
+        return position_helper;
     }
 
     /**
      *
-     * @param erMatrix [attacker*defender][2] expected remaining armies
+     * @param sparseF [attacker*defender][2] expected remaining armies
      * @return probabilities that attacker wins for start states (11,...,1D,21,...,2D,...,A1,...,AD)
      */
-    public double[] getProbabilityAttackerWin(double[][] erMatrix) {
-        double[] pzAtt = new double[erMatrix.length];
-        for (int i = defender; i < attacker+defender; i++) {
-            for (int j = 0; j < erMatrix.length; j++) {
-                pzAtt[j] += erMatrix[j][i];
+    public double[] getProbabilityAttackerWin(SparseMatrix sparseF, int position) {
+        double[] pz_att = new double[sparseF.row];
+        int  attack_count = 0;
+        int defend_count = defender;
+        double sum = 0;
+        int pz_counter = 0;
+
+        while (position < sparseF.len) {
+            if (sparseF.matrix[position][0] == attack_count && sparseF.matrix[position][1] == defend_count) {
+                sum += sparseF.matrix[position][2];
+                position++;
             }
+            if (defend_count >= attacker+defender-1) {
+                defend_count = 0;
+                if (attack_count < attacker*defender-1) {
+                    attack_count++;
+                }
+                pz_att[pz_counter] = sum;
+                pz_counter++;
+                sum = 0;
+                while (sparseF.matrix[position][0] < attack_count) {
+                    position++;
+                }
+            } else {
+                defend_count++;
+            }
+            if (sparseF.matrix[position][0] == attacker*defender-1 && sparseF.matrix[position][1] == attacker+defender-1) {
+                position = sparseF.len;
+            }
+
         }
-        return pzAtt;
+        return pz_att;
     }
     /**
      * F - Matrix calculations
      */
     /**
      *
-     * @param rMatrix
-     * @param qMatrix
+     * @param sparseR
+     * @param sparseQ
      * @return double[attacker*defender][attacker+defender], probabilities for starting in a transient state,
      *      *  landing in an absorbing state
      */
-    public double[][] getMatrixF(double[][] rMatrix, double[][] qMatrix) {
-        double[][] fMatrix = fillWithZero(attacker*defender, attacker+defender);
+    public SparseMatrix generateSparseF(SparseMatrix sparseR, SparseMatrix sparseQ) {
+
+
+        SparseMatrix sparseF = new SparseMatrix(attacker*defender, attacker+defender, (attacker*defender) * (attacker+defender));
         for (int n = 1; n < attacker+defender; n++) {
-            double[][] expMatrix = multiplyMatrixNTimes(qMatrix, n-1);
-            double[][] multiplyQRMatrix = multiplyMatrix(expMatrix, rMatrix);
-            for (int i = 0; i < fMatrix.length; i++) {
-                for (int j = 0; j < fMatrix[i].length; j++) {
-                    fMatrix[i][j] += multiplyQRMatrix[i][j];
-                }
-            }
+            SparseMatrix sparseExp = sparseQ.multiplySparseNTimes(n-1);
+            SparseMatrix sparseQR = sparseExp.multiplySparse(sparseR);
+            SparseMatrix tmp = sparseF;
+            sparseF = tmp.add(sparseQR);
+            /*if (n == 1) {
+                sparseExp.printSparse("sparseExp");
+                sparseQR.printSparse("multiply");
+
+            }*/
         }
-        return fMatrix;
+        //sparseF.printSparse("sparseF");
+        return sparseF;
     }
 
     /**
      * E - Matrix calculations
      */
     /**
-     * @return double[attacker+defender][2], all transient state ([1...0D...0]; [0...1...A])
+     * @return double[2][attacker*defender], all transient state (first row: 1..D0..0, second row: 0..01..A)
      */
-    public double[][] getMatrixE() {
-        double[][] eMatrix = new double[2][attacker+defender];
+    public SparseMatrix generateSparseE() {
+        SparseMatrix sparseE = new SparseMatrix(attacker+defender, 2, (attacker+defender));
         int countFirstRow = 1;
         int countSecRow = 0;
-        for (int i = 0; i < eMatrix[0].length; i++) {
-            // fill first row (1...D and then 0)
+        for (int i = 0; i < attacker+defender; i++) {
             if (countFirstRow > defender) {
                 countFirstRow = 0;
             }
-            eMatrix[0][i] = countFirstRow;
             if (countFirstRow != 0) {
+                sparseE.insertSparse(i, 0, countFirstRow);
                 countFirstRow++;
             }
         }
-        for (int i = 0; i < eMatrix[1].length; i++) {
+        for (int i = 0; i < attacker+defender; i++) {
             // fill second row (zeros until D is reached, then 1...A)
             if (i >= defender) {
                 countSecRow++;
             }
-            eMatrix[1][i] = countSecRow;
+            if (countSecRow != 0) {
+                sparseE.insertSparse(i, 1, countSecRow);
+            }
         }
-        return eMatrix;
+        return sparseE;
     }
 
 
