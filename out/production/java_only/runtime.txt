@@ -8,3 +8,6 @@ normal:
 20x20: generate f: 91117 millis = 1.518min
 25x25: generate f: 569949 millis = 9.5min
 30x30: generate f: 5185011 millis = 86.41min = 1.45h
+
+with library: 163093millis for 70x70 = 2.7min
+75x75 = 226936 = 3.78min

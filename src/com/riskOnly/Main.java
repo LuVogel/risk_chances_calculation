@@ -5,8 +5,6 @@ import com.riskOnly.matrix.*;
 import java.util.Scanner;
 
 
-import static com.riskOnly.matrix.MatrixOperations.printMatrix;
-import static com.riskOnly.matrix.MatrixOperations.transposeMatrix;
 
 public class Main {
 
@@ -20,7 +18,7 @@ public class Main {
 
 
     public static void main(String[] args) {
-        matrixGenerator = new MatrixGenerator(7, 3);
+        matrixGenerator = new MatrixGenerator(80, 80);
         int attacker = matrixGenerator.getAttacker();
         int defender = matrixGenerator.getDefender();
 
