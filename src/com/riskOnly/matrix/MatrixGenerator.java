@@ -348,7 +348,13 @@ public class MatrixGenerator {
      *
      */
     public double[][] getMatrixER(Matrix fMatrix, Matrix eMatrix) {
-        return fMatrix.times(eMatrix).getArray();
+        double[][] temp = fMatrix.times(eMatrix).getArray();
+        for (int i = 0; i < temp.length; i++) {
+            for (int j = 0; j < temp[0].length; j++) {
+                temp[i][j] = Math.round(temp[i][j] * 100.0) / 100.0;
+            }
+        }
+        return temp;
     }
 
 
@@ -380,32 +386,38 @@ public class MatrixGenerator {
 
     /**
      *
-     * @param erMatrix [attacker*defender][2] expected remaining armies
+     * @param fMatrix [attacker*defender][2] expected remaining armies
      * @return probabilities that defender wins for start states (11,...,1D,21,...,2D,...,A1,...,AD)
      */
-    public double[] getProbabilityDefenderWin(double[][] erMatrix) {
-        double[] pKDef = new double[erMatrix.length];
+    public double[] getProbabilityDefenderWin(double[][] fMatrix) {
+        double[] pk_def_temp = new double[fMatrix.length];
         for (int i = 0; i < defender; i++) {
-            for (int j = 0; j < erMatrix.length; j++) {
-                pKDef[j] += erMatrix[j][i];
+            for (int j = 0; j < fMatrix.length; j++) {
+                pk_def_temp[j] += fMatrix[j][i];
             }
         }
-        return pKDef;
+        for (int i = 0; i < fMatrix.length; i++) {
+            pk_def_temp[i] = Math.round((pk_def_temp[i] * 100) * 100.0) / 100.0;
+        }
+        return pk_def_temp;
     }
 
     /**
      *
-     * @param erMatrix [attacker*defender][2] expected remaining armies
+     * @param fMatrix [attacker*defender][2] expected remaining armies
      * @return probabilities that attacker wins for start states (11,...,1D,21,...,2D,...,A1,...,AD)
      */
-    public double[] getProbabilityAttackerWin(double[][] erMatrix) {
-        double[] pzAtt = new double[erMatrix.length];
+    public double[] getProbabilityAttackerWin(double[][] fMatrix) {
+        double[] pz_att_temp = new double[fMatrix.length];
         for (int i = defender; i < attacker+defender; i++) {
-            for (int j = 0; j < erMatrix.length; j++) {
-                pzAtt[j] += erMatrix[j][i];
+            for (int j = 0; j < fMatrix.length; j++) {
+                pz_att_temp[j] += fMatrix[j][i];
             }
         }
-        return pzAtt;
+        for (int i = 0; i < fMatrix.length; i++) {
+            pz_att_temp[i] = Math.round((pz_att_temp[i] * 100) * 100.0) / 100.0;
+        }
+        return pz_att_temp;
     }
 
 

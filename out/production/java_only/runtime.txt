@@ -11,3 +11,4 @@ normal:
 
 with library: 163093millis for 70x70 = 2.7min
 75x75 = 226936 = 3.78min
+80x80 heap space

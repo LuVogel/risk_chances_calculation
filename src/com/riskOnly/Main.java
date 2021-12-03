@@ -2,6 +2,9 @@ package com.riskOnly;
 
 import com.riskOnly.matrix.*;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Scanner;
 
 
@@ -12,13 +15,12 @@ public class Main {
 
     private static MatrixGenerator matrixGenerator;
 
-    // TODO: output winning probabilities if i attack and how many troops i am going to loose (expected)
 
 
 
 
     public static void main(String[] args) {
-        matrixGenerator = new MatrixGenerator(80, 80);
+        matrixGenerator = new MatrixGenerator(75, 75);
         int attacker = matrixGenerator.getAttacker();
         int defender = matrixGenerator.getDefender();
 
@@ -27,7 +29,39 @@ public class Main {
         double[] pkDef = matrixGenerator.getCalculatedPkDef();
         String[][] generatedERMatrixWithStates = matrixGenerator.getCalculatedERWithStates();
 
+        try {
+            File file = new File("probability_table.txt");
+            if (file.createNewFile()) {
+                System.out.println("File created: " + file.getName());
+            } else {
+                System.out.println("File already exists.");
+            }
+        } catch (IOException e) {
+            System.out.println("An error occurred.");
+            e.printStackTrace();
+        }
 
+        try {
+            FileWriter writer = new FileWriter("probability_table.txt");
+            int attack_count = 1;
+            int defend_count = 1;
+            for (int i = 0; i < erMatrix.length; i++) {
+                writer.write(attack_count + " " + defend_count + " " +erMatrix[i][1] + " " + erMatrix[i][0] +
+                        " " + pzAtt[i] + " " + pkDef[i] + "\n");
+                if (defend_count < defender) {
+                    defend_count++;
+                } else if (defend_count == defender) {
+                    defend_count = 1;
+                    attack_count++;
+                }
+            }
+            writer.close();
+            System.out.println("successfully wrote to file");
+
+        } catch (IOException e) {
+             System.out.println("an error occurred.");
+             e.printStackTrace();
+        }
 
 
 /**
@@ -46,8 +80,8 @@ public class Main {
         System.out.println("When attacking with " + attacker + " units and defender has " + defender + " units. " +
                 "\nexpected remaining attacking units: " + erMatrix[erMatrix.length-1][1] +
                 "\nexpected remaining defending units: " + erMatrix[erMatrix.length-1][0] +
-                "\nWinning probability that attacker wins: " + pzAtt[pzAtt.length-1] +
-                "\nWinning probability that defender wins: " + pkDef[pkDef.length-1]);
+                "\nWinning probability that attacker wins: " + pzAtt[pzAtt.length-1] + "%" +
+                "\nWinning probability that defender wins: " + pkDef[pkDef.length-1] + "%");
 
         boolean waitingOnInput = true;
         int currentIPosition = 0;
