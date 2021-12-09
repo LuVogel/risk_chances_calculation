@@ -1,6 +1,6 @@
 package com.riskOnly.matrix;
 
-import Jama.Matrix;
+
 
 
 /**
@@ -8,44 +8,6 @@ import Jama.Matrix;
  *
  */
 public class MatrixOperations {
-
-    /**
-     * prints a matrix (needed for testing)
-     * @param matrix
-     * @param name
-     */
-    public static void printDoubleMatrix(double[][] matrix, String name) {
-        System.out.println("----------\n" + name + " : ");
-        for (int row = 0; row < matrix.length; row++) {
-            for (int col = 0; col < matrix[row].length; col++) {
-                System.out.printf("%12f", matrix[row][col]);
-            }
-            System.out.println();
-        }
-        System.out.println("----------");
-    }
-    public static void printMatrix(Matrix matrix1, String name) {
-        double[][] matrix = matrix1.getArray();
-        System.out.println("----------\n" + name + " : ");
-        for (int row = 0; row < matrix.length; row++) {
-            for (int col = 0; col < matrix[row].length; col++) {
-                System.out.printf("%12f", matrix[row][col]);
-            }
-            System.out.println();
-        }
-        System.out.println("----------");
-    }
-    public static void printStringMatrix(String[][] matrix, String name) {
-        System.out.println("----------\n" + name + " : ");
-        for (int row = 0; row < matrix.length; row++) {
-            for (int col = 0; col < matrix[row].length; col++) {
-                System.out.print(matrix[row][col] + " | ");
-            }
-            System.out.println();
-        }
-        System.out.println("----------");
-    }
-
 
     /**
      * fills matrix with zero
